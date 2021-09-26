@@ -13,6 +13,7 @@ public class MovePlayer : MonoBehaviour
     float currAccel;
     float dir = 1;
     bool turning = false;
+    bool onGround = false;
 
     Rigidbody2D myBody;
     SpriteRenderer mySprite;
@@ -31,8 +32,26 @@ public class MovePlayer : MonoBehaviour
         speed += currAccel;
         speed = Mathf.Clamp(speed, -maxSpeed, maxSpeed);
         dir = Mathf.Sign(speed);
-        if (dir == -1) mySprite.flipX = false;
-        else mySprite.flipX = true;
+        if (dir == -1) mySprite.flipX = true;
+        else mySprite.flipX = false;
         myBody.velocity = new Vector2(speed, myBody.velocity.y);
+
+        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.Space))
+        {
+            if (onGround)
+            {
+                myBody.velocity = new Vector2(myBody.velocity.x, jumpHeight);
+                onGround = false;
+                Debug.Log("jump!");
+            }
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Platform"))
+        {
+            onGround = true;
+        }
     }
 }
