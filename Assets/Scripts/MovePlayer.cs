@@ -8,42 +8,102 @@ public class MovePlayer : MonoBehaviour
     public float returnAccel;
     public float maxSpeed;
     public float minSpeed;
+    public float turnAccel;
     public float jumpHeight;
+    public Vector2 boostSpeed;
+    public float boostAccel;
+    public float boostTime;
     float speed;
     float currAccel;
     float dir = 1;
+    float boostDir = 1;
     bool turning = false;
     bool onGround = false;
+    bool boosting = false;
+    float boostCurrTime = 0f;
 
     Rigidbody2D myBody;
     SpriteRenderer mySprite;
+    Animator animator;
 
     void Start()
     {
         myBody = GetComponent<Rigidbody2D>();
         mySprite = GetComponent<SpriteRenderer>();
+        animator = GetComponent<Animator>();
+        speed = minSpeed;
     }
     
     void Update()
     {
-        if (Mathf.Abs(speed) > minSpeed) speed -= returnAccel * dir * Time.deltaTime;
-        else speed += returnAccel * dir * Time.deltaTime;
-        currAccel = Input.GetAxis("Horizontal") * accel * Time.deltaTime;
-        speed += currAccel;
-        speed = Mathf.Clamp(speed, -maxSpeed, maxSpeed);
-        dir = Mathf.Sign(speed);
-        if (dir == -1) mySprite.flipX = true;
-        else mySprite.flipX = false;
+        if (turning) DoTurn();
+        else DoHorizontalSpeed();
         myBody.velocity = new Vector2(speed, myBody.velocity.y);
 
-        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.Space))
+        if (boosting)
+        {
+            boostCurrTime += Time.deltaTime;
+            if (boostCurrTime > boostTime)
+            {
+                boosting = false;
+                animator.SetBool("isBoosting", false);
+            }
+            else myBody.velocity = new Vector2(myBody.velocity.x, boostSpeed.y);
+        }
+        else if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.Space))
         {
             if (onGround)
             {
                 myBody.velocity = new Vector2(myBody.velocity.x, jumpHeight);
                 onGround = false;
-                Debug.Log("jump!");
+                animator.SetBool("isJumping", true);
             }
+            else if (boostCurrTime == 0f)
+            {
+                boosting = true;
+                animator.SetBool("isBoosting", true);
+                if (Input.GetAxisRaw("Horizontal") != 0) boostDir = Input.GetAxisRaw("Horizontal");
+                else if (!mySprite.flipX) boostDir = 1;
+                else boostDir = -1;
+
+                if (boostDir == 1) mySprite.flipX = false;
+                else mySprite.flipX = true;
+            }
+        }
+    }
+
+    void DoTurn()
+    {
+        int turnDir = 1;
+        if (mySprite.flipX) turnDir *= -1;
+        speed += turnAccel * turnDir * Time.deltaTime;
+        dir = Mathf.Sign(speed);
+        if (Mathf.Abs(speed) > minSpeed)
+        {
+            turning = false;
+            animator.SetBool("isTurning", false);
+        }
+    }
+
+    void DoHorizontalSpeed()
+    {
+        if (Mathf.Abs(speed) > minSpeed)
+        {
+            speed -= returnAccel * dir * Time.deltaTime;
+            if (Mathf.Abs(speed) < minSpeed) speed = minSpeed * dir;
+        }
+        currAccel = Input.GetAxis("Horizontal") * accel * Time.deltaTime;
+        if (boosting) currAccel += boostAccel * boostDir;
+        speed += currAccel;
+        if (boosting) speed = Mathf.Clamp(speed, -(maxSpeed + boostSpeed.x), maxSpeed + boostSpeed.x);
+        else speed = Mathf.Clamp(speed, -maxSpeed, maxSpeed);
+        dir = Mathf.Sign(speed);
+        if (Mathf.Abs(speed) < minSpeed && !boosting)
+        {
+            turning = true;
+            animator.SetBool("isTurning", true);
+            if (!mySprite.flipX) mySprite.flipX = true;
+            else mySprite.flipX = false;
         }
     }
 
@@ -52,6 +112,10 @@ public class MovePlayer : MonoBehaviour
         if (collision.gameObject.CompareTag("Platform"))
         {
             onGround = true;
+            animator.SetBool("isJumping", false);
+            boostCurrTime = 0f;
+            boosting = false;
+            animator.SetBool("isBoosting", false);
         }
     }
 }
