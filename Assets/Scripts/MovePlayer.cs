@@ -30,6 +30,7 @@ public class MovePlayer : MonoBehaviour
     public AudioClip brakeSound;
     public AudioClip accelStart;
     public AudioClip accelLoop;
+    public GameObject canvas;
 
     void Start()
     {
@@ -154,6 +155,18 @@ public class MovePlayer : MonoBehaviour
             boostCurrTime = 0f;
             boosting = false;
             animator.SetBool("isBoosting", false);
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.gameObject.CompareTag("Goal"))
+        {
+            canvas.SendMessage("DoWin");
+        }
+        else if (collision.gameObject.CompareTag("Obstacle"))
+        {
+            canvas.SendMessage("DoDeath");
         }
     }
 }
