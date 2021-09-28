@@ -20,17 +20,23 @@ public class MovePlayer : MonoBehaviour
     bool turning = false;
     bool onGround = false;
     bool boosting = false;
+    bool braked = false;
     float boostCurrTime = 0f;
 
     Rigidbody2D myBody;
     SpriteRenderer mySprite;
     Animator animator;
+    AudioSource sound;
+    public AudioClip brakeSound;
+    public AudioClip accelStart;
+    public AudioClip accelLoop;
 
     void Start()
     {
         myBody = GetComponent<Rigidbody2D>();
         mySprite = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
+        sound = GetComponent<AudioSource>();
         speed = minSpeed;
     }
     
@@ -38,6 +44,7 @@ public class MovePlayer : MonoBehaviour
     {
         if (turning) DoTurn();
         else DoHorizontalSpeed();
+        HandleSound();
         myBody.velocity = new Vector2(speed, myBody.velocity.y);
 
         if (boosting)
@@ -104,6 +111,37 @@ public class MovePlayer : MonoBehaviour
             animator.SetBool("isTurning", true);
             if (!mySprite.flipX) mySprite.flipX = true;
             else mySprite.flipX = false;
+        }
+    }
+
+    void HandleSound()
+    {
+        if (turning)
+        {
+            if (!braked)
+            {
+                sound.clip = brakeSound;
+                sound.Play();
+                sound.loop = false;
+                braked = true;
+            }
+        }
+        else if (!sound.isPlaying)
+        {
+            if (sound.clip == brakeSound)
+            {
+                sound.Stop();
+                sound.clip = accelStart;
+                sound.loop = false;
+                braked = false;
+                sound.Play();
+            }
+            else
+            {
+                sound.clip = accelLoop;
+                sound.loop = true;
+                sound.Play();
+            }
         }
     }
 
